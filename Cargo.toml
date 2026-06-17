@@ -1,0 +1,12 @@
+[package]
+name = "app-access-locker"
+version = "0.1.0"
+edition = "2021"
+authors = ["Ricardo Aguilar"]
+description = "Native App Locker for Fedora 44"
+
+[dependencies]
+gtk4 = { version = "0.7", package = "gtk4" }
+libadwaita = "0.5"
+argon2 = "0.5"
+keyring = "2.3"
