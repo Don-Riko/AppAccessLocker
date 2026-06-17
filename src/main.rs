@@ -1,8 +1,6 @@
 mod gui;
 mod security;
-mod launcher;
 mod monitor;
-mod config;
 
 use std::env;
 use gtk4::prelude::*;
@@ -28,7 +26,7 @@ fn main() {
     });
 
     app.connect_activate(move |app| {
-        if !security::keyring::has_pin_setup() {
+        if !security::has_pin_setup() {
             gui::setup::show_setup_window(app);
         } else if target_app.is_empty() {
             println!("Modo de gestión de AppAccessLocker (Añadir UI aquí)");

@@ -15,7 +15,8 @@ pub fn show_lockscreen(app: &Application, target_app: String, child_rc: Rc<RefCe
     vbox.set_valign(gtk4::Align::Center);
     vbox.set_halign(gtk4::Align::Center);
 
-    let label = Label::new(Some(&format!("Inactividad de 30s alcanzada.\nDesbloquear {}:", target_app)));
+    let idle_secs = crate::monitor::activity::IDLE_LIMIT_MS / 1000;
+    let label = Label::new(Some(&format!("Inactividad de {}s alcanzada.\nDesbloquear {}:", idle_secs, target_app)));
     let pin_entry = PasswordEntry::new();
     pin_entry.set_activates_default(true);
 
@@ -30,7 +31,7 @@ pub fn show_lockscreen(app: &Application, target_app: String, child_rc: Rc<RefCe
     unlock_btn.connect_clicked(move |_| {
         let pin = value.text().to_string();
         
-        if crate::security::pin::validate_pin(&pin) {
+        if crate::security::validate_pin(&pin) {
             // 1. DESCONGELAMOS LA APP OBJETIVO
             let pid = child_rc.borrow().id();
             Command::new("kill").args(["-CONT", &pid.to_string()]).spawn().ok();

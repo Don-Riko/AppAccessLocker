@@ -26,7 +26,7 @@ pub fn show_setup_window(app: &Application) {
     save_btn.connect_clicked(move |_| {
         let pin = value.text().to_string();
         if !pin.is_empty() {
-            crate::security::pin::setup_new_pin(&pin).unwrap();
+            crate::security::setup_new_pin(&pin).unwrap();
             println!("PIN guardado. Reinicia la aplicación.");
             window_clone.close();
         }

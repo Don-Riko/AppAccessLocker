@@ -4,6 +4,9 @@ use std::cell::RefCell;
 use libadwaita::Application;
 use gtk4::prelude::*; // Necesario para app.hold()
 
+/// Inactividad (ms) antes de congelar la app y pedir el PIN.
+pub const IDLE_LIMIT_MS: u64 = 30_000;
+
 /// Consulta a GNOME cuánto tiempo (en milisegundos) lleva el usuario sin tocar nada
 fn get_idle_time_ms() -> u64 {
     let output = Command::new("busctl")
@@ -42,7 +45,7 @@ pub fn start_idle_monitor(app: Application, target_app: String, child_rc: Rc<Ref
 
         // 2. Revisamos si lleva 30 segundos de inactividad
         let idle_ms = get_idle_time_ms();
-        if idle_ms >= 30_000 {
+        if idle_ms >= IDLE_LIMIT_MS {
             let pid = child_rc.borrow().id();
             
             // ¡MAGIA LINUX! Congelamos la aplicación objetivo

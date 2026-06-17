@@ -35,9 +35,8 @@ pub fn show_login_window(app: &Application, target_app: String, app_args: Vec<St
     unlock_btn.connect_clicked(move |_| {
         let pin = value.text().to_string();
         
-        if crate::security::pin::validate_pin(&pin) {
-            let launcher = crate::launcher::process::AppLauncher::new(&target_app, app_args.clone());
-            match launcher.launch() {
+        if crate::security::validate_pin(&pin) {
+            match std::process::Command::new(&target_app).args(&app_args).spawn() {
                 Ok(child) => {
                     let child_rc = Rc::new(RefCell::new(child));
                     
