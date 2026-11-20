@@ -73,14 +73,20 @@ impl Face {
         self.bbox[2] - self.bbox[0]
     }
 
-    /// Estimación de giro horizontal de la cabeza a partir de los 5 puntos:
-    /// desplazamiento de la nariz respecto al punto medio de los ojos,
-    /// normalizado por la distancia interocular. ~0 de frente; |yaw| crece al girar.
-    pub fn yaw(&self) -> f32 {
-        let (l, r, n) = (self.kps[0], self.kps[1], self.kps[2]);
-        let mid_x = (l[0] + r[0]) / 2.0;
-        let eye_dist = ((r[0] - l[0]).powi(2) + (r[1] - l[1]).powi(2)).sqrt().max(1.0);
-        (n[0] - mid_x) / eye_dist
+    /// Métricas geométricas derivadas de los 5 puntos y la caja (ver `liveness::FaceMetrics`).
+    pub fn metrics(&self) -> liveness::FaceMetrics {
+        let (le, re, nose, ml, mr) = (self.kps[0], self.kps[1], self.kps[2], self.kps[3], self.kps[4]);
+        let eye_dx = re[0] - le[0];
+        let eye_dy = re[1] - le[1];
+        let eye_dist = (eye_dx * eye_dx + eye_dy * eye_dy).sqrt().max(1.0);
+        let mid_x = (le[0] + re[0]) / 2.0;
+        let mouth_w = ((mr[0] - ml[0]).powi(2) + (mr[1] - ml[1]).powi(2)).sqrt();
+        liveness::FaceMetrics {
+            yaw: (nose[0] - mid_x) / eye_dist,
+            roll_deg: eye_dy.atan2(eye_dx).to_degrees(),
+            mouth_ratio: mouth_w / eye_dist,
+            face_width: self.width(),
+        }
     }
 }
 

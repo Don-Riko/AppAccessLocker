@@ -1,7 +1,7 @@
 //! Ventana de gestión: conmutador entre modo Clásico (temporizador) y modo
 //! Autenticador (cámara), y registro/eliminación del rostro del usuario.
 
-use crate::config::settings::{LockMode, Settings};
+use crate::config::settings::{LivenessPolicy, LockMode, Settings};
 use gtk4::prelude::*;
 use gtk4::{ApplicationWindow, Box, Button, CheckButton, Label, Orientation};
 use libadwaita::Application;
@@ -12,8 +12,8 @@ pub fn show_manage_window(app: &Application) {
     let window = ApplicationWindow::builder()
         .application(app)
         .title("AppAccessLocker — Configuración")
-        .default_width(460)
-        .default_height(360)
+        .default_width(520)
+        .default_height(520)
         .build();
 
     let vbox = Box::new(Orientation::Vertical, 12);
@@ -39,13 +39,36 @@ pub fn show_manage_window(app: &Application) {
 
     let s = settings.borrow();
     let params = Label::new(Some(&format!(
-        "Autenticador: comprueba cada {} s y bloquea tras {} s sin reconocerte.\nAl reconocerte de nuevo, la app se reanuda automáticamente (con verificación de vida).\nLa cámara solo se usa en este modo; nunca se guardan imágenes.",
+        "Autenticador: comprueba cada {} s y bloquea tras {} s sin reconocerte.\nAl reconocerte de frente, la app se reanuda automáticamente.\nLa cámara solo se usa en este modo; nunca se guardan imágenes.",
         s.presence_check_interval_secs, s.presence_lock_after_secs
     )));
     drop(s);
     params.add_css_class("dim-label");
     params.set_wrap(true);
     params.set_halign(gtk4::Align::Start);
+
+    // --- Candado de confirmación (liveness)
+    let live_title = Label::new(Some("Candado de confirmación (anti-foto / anti-vídeo)"));
+    live_title.add_css_class("title-4");
+    live_title.set_halign(gtk4::Align::Start);
+    let live_note = Label::new(Some(
+        "Tras reconocerte de frente, puede pedirte un gesto aleatorio en pantalla \
+         (girar la cabeza a un lado, inclinarla, sonreír, acercarte) y volver al frente.",
+    ));
+    live_note.add_css_class("dim-label");
+    live_note.set_wrap(true);
+    live_note.set_halign(gtk4::Align::Start);
+
+    let live_always = CheckButton::with_label("Siempre");
+    let live_uncertain = CheckButton::with_label("Solo si la coincidencia no es alta, o al azar (1 de cada 4)");
+    let live_never = CheckButton::with_label("Nunca (basta reconocer el rostro de frente)");
+    live_uncertain.set_group(Some(&live_always));
+    live_never.set_group(Some(&live_always));
+    match settings.borrow().liveness_policy {
+        LivenessPolicy::Always => live_always.set_active(true),
+        LivenessPolicy::Uncertain => live_uncertain.set_active(true),
+        LivenessPolicy::Never => live_never.set_active(true),
+    }
 
     // --- Rostro registrado
     let face_title = Label::new(Some("Rostro registrado"));
@@ -121,9 +144,18 @@ pub fn show_manage_window(app: &Application) {
     {
         let settings = settings.clone();
         let auth_btn = auth_btn.clone();
+        let live_always = live_always.clone();
+        let live_never = live_never.clone();
         let message = message.clone();
         save_btn.connect_clicked(move |_| {
             let mode = if auth_btn.is_active() { LockMode::Authenticator } else { LockMode::Classic };
+            let policy = if live_always.is_active() {
+                LivenessPolicy::Always
+            } else if live_never.is_active() {
+                LivenessPolicy::Never
+            } else {
+                LivenessPolicy::Uncertain
+            };
             if mode == LockMode::Authenticator {
                 if !crate::security::has_face_template() {
                     message.set_text("Registra tu rostro antes de activar el modo Autenticador.");
@@ -136,6 +168,7 @@ pub fn show_manage_window(app: &Application) {
             }
             let mut s = settings.borrow_mut();
             s.lock_mode = mode;
+            s.liveness_policy = policy;
             match s.save() {
                 Ok(()) => message.set_text(&format!(
                     "Configuración guardada. Modo activo: {}.",
@@ -153,6 +186,11 @@ pub fn show_manage_window(app: &Application) {
     vbox.append(&classic_btn);
     vbox.append(&auth_btn);
     vbox.append(&params);
+    vbox.append(&live_title);
+    vbox.append(&live_note);
+    vbox.append(&live_always);
+    vbox.append(&live_uncertain);
+    vbox.append(&live_never);
     vbox.append(&face_title);
     vbox.append(&face_status);
     vbox.append(&face_row);

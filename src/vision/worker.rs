@@ -6,6 +6,7 @@
 //! La cámara se libera cuando el hilo termina (al soltar `VisionWorker`).
 
 use crate::camera::Camera;
+use crate::vision::liveness::FaceMetrics;
 use crate::vision::FaceEngine;
 use std::path::PathBuf;
 use std::sync::mpsc::{self, RecvTimeoutError, Sender};
@@ -16,7 +17,7 @@ use std::time::{Duration, Instant};
 #[derive(Debug, Clone)]
 pub enum Observation {
     /// Se detectó un rostro válido.
-    Face { score: f32, yaw: f32, embedding: Vec<f32> },
+    Face { score: f32, metrics: FaceMetrics, embedding: Vec<f32> },
     /// La cámara funciona pero no hay rostro.
     NoFace,
     /// Fallo de cámara o de inferencia (se reintenta en el siguiente ciclo).
@@ -119,7 +120,7 @@ fn observe(camera: &mut Option<Camera>, engine: &FaceEngine, device: &str) -> Ob
     };
     match engine.detect(&img) {
         Ok(Some(face)) => match engine.embed(&img, &face) {
-            Ok(embedding) => Observation::Face { score: face.score, yaw: face.yaw(), embedding },
+            Ok(embedding) => Observation::Face { score: face.score, metrics: face.metrics(), embedding },
             Err(e) => Observation::Error(e.to_string()),
         },
         Ok(None) => Observation::NoFace,

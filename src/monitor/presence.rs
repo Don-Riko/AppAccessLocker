@@ -9,7 +9,7 @@
 
 use crate::config::settings::Settings;
 use crate::gui::lockscreen::PresenceLockscreen;
-use crate::vision::liveness::{LivenessCheck, LivenessStep};
+use crate::vision::liveness::{LivenessCheck, Verdict};
 use crate::vision::worker::{Observation, VisionWorker};
 use crate::vision::cosine_similarity;
 use gtk4::glib;
@@ -75,7 +75,8 @@ impl Monitor {
         if let Some(w) = &self.worker {
             w.set_interval(LOCKED_INTERVAL);
         }
-        self.phase = Phase::Locked { screen, liveness: LivenessCheck::new() };
+        let liveness = LivenessCheck::new(self.settings.liveness_policy, self.settings.face_strong_threshold);
+        self.phase = Phase::Locked { screen, liveness };
     }
 
     fn unlock(&mut self) {
@@ -122,18 +123,20 @@ impl Monitor {
                 }
             }
             Phase::Locked { screen, liveness } => match obs {
-                Observation::Face { yaw, .. } if seen => {
-                    if liveness.feed(yaw) == LivenessStep::Passed {
-                        Action::Unlock
-                    } else {
-                        screen.set_status(liveness.instruction());
-                        Action::None
+                Observation::Face { metrics, embedding, .. } => {
+                    let similarity = cosine_similarity(&self.template, &embedding);
+                    match liveness.feed(&metrics, similarity, seen) {
+                        Verdict::Passed => Action::Unlock,
+                        Verdict::Pending(text) => {
+                            screen.set_status(&text);
+                            Action::None
+                        }
+                        Verdict::Failed => {
+                            screen.set_status("Verificación fallida. Usa el PIN para continuar.");
+                            liveness.reset();
+                            Action::None
+                        }
                     }
-                }
-                Observation::Face { .. } => {
-                    liveness.reset();
-                    screen.set_status("Rostro no reconocido. Usa el PIN para continuar.");
-                    Action::None
                 }
                 Observation::NoFace => {
                     liveness.reset();

@@ -3,6 +3,8 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 
+pub use crate::vision::liveness::LivenessPolicy;
+
 /// Modo de bloqueo de la aplicación protegida.
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[serde(rename_all = "snake_case")]
@@ -30,6 +32,11 @@ pub struct Settings {
     pub presence_lock_after_secs: u32,
     /// Umbral de similitud coseno para aceptar un rostro como el registrado (0..1).
     pub face_match_threshold: f32,
+    /// Similitud a partir de la cual la identidad se considera "fuerte" (sin candado
+    /// de confirmación con la política `uncertain`).
+    pub face_strong_threshold: f32,
+    /// Cuándo exigir el candado de confirmación (gesto aleatorio) al desbloquear.
+    pub liveness_policy: LivenessPolicy,
 }
 
 impl Default for Settings {
@@ -42,6 +49,8 @@ impl Default for Settings {
             presence_check_interval_secs: 5,
             presence_lock_after_secs: 10,
             face_match_threshold: 0.40,
+            face_strong_threshold: 0.60,
+            liveness_policy: LivenessPolicy::Uncertain,
         }
     }
 }

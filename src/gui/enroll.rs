@@ -3,7 +3,7 @@
 //! verificación de vida durante el registro. No se guarda ninguna imagen.
 
 use crate::config::settings::Settings;
-use crate::vision::liveness::{is_frontal, is_turned};
+use crate::vision::liveness::{is_frontal, is_turned, FaceMetrics};
 use crate::vision::worker::{Observation, VisionWorker};
 use crate::vision::{cosine_similarity, mean_template};
 use gtk4::glib;
@@ -59,10 +59,10 @@ impl Enroll {
         }
     }
 
-    fn accepts(&self, yaw: f32, embedding: &[f32]) -> bool {
+    fn accepts(&self, m: &FaceMetrics, embedding: &[f32]) -> bool {
         let pose_ok = match self.step {
-            Step::Front | Step::FrontAgain => is_frontal(yaw),
-            Step::Turn => is_turned(yaw),
+            Step::Front | Step::FrontAgain => is_frontal(m),
+            Step::Turn => is_turned(m),
             Step::Done => false,
         };
         if !pose_ok {
@@ -174,8 +174,8 @@ pub fn show_enroll_window(app: &Application, on_finished: Rc<dyn Fn(bool)>) {
                 return glib::ControlFlow::Break;
             }
             match obs {
-                Observation::Face { score, yaw, embedding } => {
-                    if score >= MIN_SCORE && st.accepts(yaw, &embedding) {
+                Observation::Face { score, metrics, embedding } => {
+                    if score >= MIN_SCORE && st.accepts(&metrics, &embedding) {
                         st.push(embedding);
                     }
                     instruction.set_text(&st.instruction());
