@@ -14,3 +14,11 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 directories = "5.0"
 rand_core = { version = "0.6", features = ["getrandom"] }
+# Modo Autenticador (visión computacional)
+linuxvideo = "0.3"
+tract-onnx = "0.23"
+image = { version = "0.25", default-features = false, features = ["jpeg"] }
+
+# La inferencia en debug es muy lenta; optimizamos las dependencias siempre.
+[profile.dev.package."*"]
+opt-level = 3
