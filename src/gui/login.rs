@@ -1,6 +1,7 @@
 use gtk4::prelude::*;
 use libadwaita::Application;
 use gtk4::{ApplicationWindow, Box, Button, Orientation, PasswordEntry, Label};
+use crate::config::settings::{LockMode, Settings};
 
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -40,8 +41,26 @@ pub fn show_login_window(app: &Application, target_app: String, app_args: Vec<St
                 Ok(child) => {
                     let child_rc = Rc::new(RefCell::new(child));
                     
-                    // Usamos app_clone aquí, no la referencia original `app`
-                    crate::monitor::activity::start_idle_monitor(app_clone.clone(), target_app.clone(), child_rc);
+                    // Elegimos el monitor según el modo configurado.
+                    let settings = Settings::load();
+                    let face_template = match settings.lock_mode {
+                        LockMode::Authenticator => crate::security::get_face_template(),
+                        LockMode::Classic => None,
+                    };
+                    match (settings.lock_mode, face_template) {
+                        (LockMode::Authenticator, Some(template)) => {
+                            crate::monitor::presence::start_presence_monitor(
+                                app_clone.clone(), target_app.clone(), child_rc, settings, template,
+                            );
+                        }
+                        (LockMode::Authenticator, None) => {
+                            eprintln!("Modo Autenticador sin rostro registrado: se usa el modo Clásico.");
+                            crate::monitor::activity::start_idle_monitor(app_clone.clone(), target_app.clone(), child_rc);
+                        }
+                        (LockMode::Classic, _) => {
+                            crate::monitor::activity::start_idle_monitor(app_clone.clone(), target_app.clone(), child_rc);
+                        }
+                    }
 
                     window_clone.close();
                 },

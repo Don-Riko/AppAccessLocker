@@ -1,6 +1,10 @@
 mod gui;
 mod security;
 mod monitor;
+mod config;
+mod launcher;
+mod camera;
+mod vision;
 
 use std::env;
 use gtk4::prelude::*;
@@ -29,7 +33,7 @@ fn main() {
         if !security::has_pin_setup() {
             gui::setup::show_setup_window(app);
         } else if target_app.is_empty() {
-            println!("Modo de gestión de AppAccessLocker (Añadir UI aquí)");
+            gui::manage::show_manage_window(app);
         } else {
             gui::login::show_login_window(app, target_app.clone(), app_args.clone());
         }
