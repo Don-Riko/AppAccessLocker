@@ -106,6 +106,16 @@ impl Monitor {
             Observation::Face { embedding, .. } => self.recognized(embedding),
             _ => false,
         };
+        if std::env::var_os("AAL_DEBUG").is_some() {
+            match &obs {
+                Observation::Face { score, metrics, embedding } => eprintln!(
+                    "[presence] rostro ancho={:.0}px score={score:.2} yaw={:+.2} sim={:.3} reconocido={seen}",
+                    metrics.face_width, metrics.yaw, cosine_similarity(&self.template, embedding)
+                ),
+                Observation::NoFace => eprintln!("[presence] sin rostro"),
+                Observation::Error(_) => {}
+            }
+        }
         if let Observation::Error(e) = &obs {
             eprintln!("[presence] {e}");
         }
