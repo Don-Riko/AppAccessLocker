@@ -7,7 +7,7 @@ autenticación para reanudarla. Tiene dos modos de bloqueo:
 | Modo | Qué vigila | Cuándo bloquea | Cómo desbloquea |
 |---|---|---|---|
 | **Clásico** (por defecto) | Inactividad de teclado/ratón (`org.gnome.Mutter.IdleMonitor`) | 30 s sin actividad | PIN |
-| **Autenticador** | La **cámara**: ¿está el usuario registrado frente al equipo? | 5 s sin reconocerte (comprueba cada 1 s) | **Automático** al reconocerte de frente; PIN como respaldo |
+| **Autenticador** | La **cámara**: ¿está el usuario registrado frente al equipo? | 3 s sin reconocerte (comprueba cada 1 s) | **Automático** al reconocerte de frente; PIN como respaldo |
 
 Cómo funciona: en lugar de lanzar la app directamente, se lanza a través del
 binario `app-access-locker`, que muestra una ventana de login. Si el PIN es
@@ -210,7 +210,7 @@ update-desktop-database ~/.local/share/applications
 Con una app protegida abierta, un hilo en segundo plano toma un fotograma cada
 **1 s**, detecta el rostro (SCRFD-500m), lo alinea y calcula su firma
 (MobileFaceNet, 512-d), y la compara con la registrada (similitud coseno,
-umbral 0.40). Si pasan **5 s** sin reconocerte (o la cámara falla), la app se
+umbral 0.40). Si pasan **3 s** sin reconocerte (o la cámara falla), la app se
 congela y aparece el lockscreen.
 
 **Desbloqueo automático**, en dos pasos:
@@ -239,7 +239,7 @@ funciona como respaldo en el lockscreen (cámara tapada, poca luz, etc.).
   "lock_mode": "authenticator",          // "classic" | "authenticator"
   "camera_device": "/dev/video0",
   "presence_check_interval_secs": 1,     // cada cuánto se comprueba la presencia
-  "presence_lock_after_secs": 5,         // segundos sin reconocerte antes de bloquear
+  "presence_lock_after_secs": 3,         // segundos sin reconocerte antes de bloquear
   "face_match_threshold": 0.4,           // similitud mínima para "eres tú"
   "face_strong_threshold": 0.6,          // similitud a partir de la cual no se pide gesto (uncertain)
   "liveness_policy": "uncertain"         // "always" | "uncertain" | "never"

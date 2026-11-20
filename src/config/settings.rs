@@ -47,7 +47,7 @@ impl Default for Settings {
             lock_mode: LockMode::Classic,
             camera_device: "/dev/video0".to_string(),
             presence_check_interval_secs: 1,
-            presence_lock_after_secs: 5,
+            presence_lock_after_secs: 3,
             face_match_threshold: 0.40,
             face_strong_threshold: 0.60,
             liveness_policy: LivenessPolicy::Uncertain,
