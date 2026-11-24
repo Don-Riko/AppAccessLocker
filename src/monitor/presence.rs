@@ -4,8 +4,8 @@
 //! coincide con la plantilla registrada. Si pasan `presence_lock_after_secs` sin
 //! reconocerlo (o con la cámara fallando), se congela la app y se muestra el
 //! lockscreen. Estando bloqueada, al reconocer al usuario se le pide superar la
-//! verificación de vida y se reanuda la app automáticamente. El PIN siempre queda
-//! como respaldo.
+//! verificación de vida y se reanuda la app automáticamente. El PIN solo se habilita mientras
+//! se reconoce el rostro registrado.
 
 use crate::config::settings::Settings;
 use crate::gui::lockscreen::PresenceLockscreen;
@@ -132,7 +132,9 @@ impl Monitor {
                     Action::None
                 }
             }
-            Phase::Locked { screen, liveness } => match obs {
+            Phase::Locked { screen, liveness } => {
+                screen.set_face_recognized(seen);
+                match obs {
                 Observation::Face { metrics, embedding, .. } => {
                     let similarity = cosine_similarity(&self.template, &embedding);
                     match liveness.feed(&metrics, similarity, seen) {
@@ -142,7 +144,7 @@ impl Monitor {
                             Action::None
                         }
                         Verdict::Failed => {
-                            screen.set_status("Verificación fallida. Usa el PIN para continuar.");
+                            screen.set_status("Verificación fallida. Muestra tu rostro registrado para usar el PIN.");
                             liveness.reset();
                             Action::None
                         }
@@ -155,10 +157,11 @@ impl Monitor {
                 }
                 Observation::Error(e) => {
                     liveness.reset();
-                    screen.set_status(&format!("Cámara no disponible: {e}\nUsa el PIN para continuar."));
+                    screen.set_status(&format!("Cámara no disponible: {e}\nNo se puede desbloquear sin verificar el rostro."));
                     Action::None
                 }
-            },
+                }
+            }
         };
 
         match action {

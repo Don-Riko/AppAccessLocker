@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=AppAccessLocker
+Comment=Configura el bloqueo de apps: modo Clásico/Autenticador y rostro registrado
+Exec=/home/ricardoaguilar/.local/bin/app-access-locker
+Icon=com.tudominio.AppAccessLocker
+StartupWMClass=com.tudominio.AppAccessLocker
+Terminal=false
+Type=Application
+Categories=System;Security;Utility;
+Keywords=Lock;Security;PIN;
