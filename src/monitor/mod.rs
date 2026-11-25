@@ -1,5 +1,6 @@
 pub mod activity;
 pub mod presence;
+pub mod camera_guard;
 
 use std::process::Command;
 

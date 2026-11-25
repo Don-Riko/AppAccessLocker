@@ -26,6 +26,9 @@ pub enum Observation {
 
 enum Command {
     SetInterval(Duration),
+    /// Libera la cámara y deja de observar hasta recibir `Resume`.
+    Pause,
+    Resume,
     Stop,
 }
 
@@ -63,6 +66,7 @@ impl VisionWorker {
                 let mut interval = interval;
                 let mut camera: Option<Camera> = None;
                 let mut next_tick = Instant::now();
+                let mut paused = false;
 
                 loop {
                     let wait = next_tick.saturating_duration_since(Instant::now());
@@ -73,9 +77,22 @@ impl VisionWorker {
                             next_tick = Instant::now();
                             continue;
                         }
+                        Ok(Command::Pause) => {
+                            paused = true;
+                            camera = None; // suelta el dispositivo de inmediato
+                            continue;
+                        }
+                        Ok(Command::Resume) => {
+                            paused = false;
+                            next_tick = Instant::now();
+                            continue;
+                        }
                         Err(RecvTimeoutError::Timeout) => {}
                     }
                     next_tick = Instant::now() + interval;
+                    if paused {
+                        continue;
+                    }
 
                     let obs = observe(&mut camera, &engine, &device);
                     if sink.send(obs).is_err() {
@@ -86,6 +103,16 @@ impl VisionWorker {
             .expect("no se pudo crear el hilo de visión");
 
         Self { cmd_tx, handle: Some(handle) }
+    }
+
+    /// Libera la cámara y suspende las observaciones (para cederla a otra app).
+    pub fn pause(&self) {
+        let _ = self.cmd_tx.send(Command::Pause);
+    }
+
+    /// Reanuda las observaciones tras `pause`.
+    pub fn resume(&self) {
+        let _ = self.cmd_tx.send(Command::Resume);
     }
 
     /// Cambia el intervalo entre comprobaciones (aplica de inmediato).
